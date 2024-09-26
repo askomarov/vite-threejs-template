@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import RAPIER from "@dimforge/rapier3d-compat";
-import vertexShader from "./shaders/vertexParticles.glsl";
+import vertexShader from "./shaders/vertexShader.glsl";
 import fragmentShader from "./shaders/fragmentShader.glsl";
 import { getRandomColor } from "./utils.js";
 import { generateRandomGeometry } from "./generateGeo.js";
@@ -11,8 +11,8 @@ class Sketch {
     this.container = document.getElementById(containerId);
 
     // Основные параметры
-    this.width = window.innerWidth;
-    this.height = window.innerHeight;
+    this.width = this.container.clientWidth;
+    this.height = this.container.clientHeight;
 
     this.scene = this.createScene();
     this.camera = this.createCamera();
@@ -99,10 +99,23 @@ class Sketch {
   createCube() {
     const color = getRandomColor();
     const geo = new THREE.BoxGeometry(1, 1, 1);
-    const mat = new THREE.MeshStandardMaterial({ color, flatShading: true });
-    const mesh = new THREE.Mesh(geo, mat);
+
+    this.material = new THREE.ShaderMaterial({
+      extensions: {
+        derivatives: "extension GL_OES_standard_derivatives : enable",
+      },
+      side: THREE.DoubleSide,
+      uniforms: {
+        time: { value: 0 },
+      },
+      transparent: true,
+      blending: THREE.AdditiveBlending,
+      fragmentShader: fragmentShader,
+      vertexShader: vertexShader,
+    });
+    const mesh = new THREE.Mesh(geo, this.material);
     mesh.position.set(0,0,0)
-    return new THREE.Mesh(geo, mat);
+    return mesh;
   }
 
   // Добавление OrbitControls
@@ -116,8 +129,8 @@ class Sketch {
 
   // Обработчик изменения размеров окна
   onWindowResize() {
-    this.width = window.innerWidth;
-    this.height = window.innerHeight;
+    this.width = this.container.clientWidth;
+    this.height = this.container.clientHeight;
 
     this.renderer.setSize(this.width, this.height);
     this.camera.aspect = this.width / this.height;
